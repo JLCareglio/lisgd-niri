@@ -1,5 +1,5 @@
-/* 
-  distancethreshold: Minimum cutoff for a gestures to take effect 
+/*
+  distancethreshold: Minimum cutoff for a gestures to take effect
   degreesleniency: Offset degrees within which gesture is recognized (max=45)
   timeoutms: Maximum duration for a gesture to take place in miliseconds
   orientation: Number of 90 degree turns to shift gestures by
@@ -7,26 +7,31 @@
   device: Path to the /dev/ filesystem device events should be read from
   gestures: Array of gestures; binds num of fingers / gesturetypes to commands
             Supported gestures: SwipeLR, SwipeRL, SwipeDU, SwipeUD,
-                                SwipeDLUR, SwipeURDL, SwipeDRUL, SwipeULDR
+                                SwipeDLUR, SwipeURDL, SwipeDRUL, SwipeULDRfd
 */
 
-unsigned int distancethreshold = 300;
+unsigned int distancethreshold = 125;
+unsigned int distancethreshold_pressed = 60;
 unsigned int degreesleniency = 15;
 unsigned int timeoutms = 800;
 unsigned int orientation = 0;
 unsigned int verbose = 0;
-char *device = "/dev/input/event1";
+double edgesizeleft = 50.0;
+double edgesizetop = 50.0;
+double edgesizeright = 50.0;
+double edgesizebottom = 50.0;
+double edgessizescaling = 1.0;
+char *device = "/dev/input/touchscreen";
 
+//Gestures can also be specified interactively from the command line using -g
 Gesture gestures[] = {
-	/* nfingers  gesturetype  command */
-	{ 1,         SwipeLR,     "xdotool key --clearmodifiers Alt+Shift+e" },
-	{ 1,         SwipeRL,     "xdotool key --clearmodifiers Alt+Shift+r" },
-	{ 1,         SwipeDLUR,   "sxmo_vol.sh up" },
-	{ 1,         SwipeURDL,   "sxmo_vol.sh down" },
-	{ 1,         SwipeDRUL,   "sxmo_brightness.sh up" },
-	{ 1,         SwipeULDR,   "sxmo_brightness.sh down" },
-	{ 2,         SwipeLR,     "xdotool key --clearmodifiers Alt+e" },
-	{ 2,         SwipeRL,     "xdotool key --clearmodifiers Alt+r" },
-	{ 2,         SwipeDU,     "pidof svkbd-sxmo || svkbd-sxmo &" },
-	{ 2,         SwipeUD,     "pkill -9 svkbd-sxmo" },
+	/* nfingers, gesturetype, edge, distance, mode, command */
+	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, "swaymsg workspace next"},
+	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, "swaymsg workspace prev"},
+	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "nwggrid -o .98"},
+	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "/usr/bin/toggle-wvkbd.sh"},
+	{2, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "sway-interactive-screenshot -s focused-output"},
+	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout tabbed"},
+	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout toggle split"},
+	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg kill"},
 };
