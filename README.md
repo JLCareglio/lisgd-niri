@@ -29,6 +29,7 @@ to /dev/input/touchscreen. The lisgd code now polls for changes to the inode whi
 happens regularly after a sleep/wake cycle. Use iio-sway for rotation.
 I have included my config.h so if you don't have a /dev/input/touchscreen put your 
 device path.
+I compile with make WITHOUT_X11=1 since I have no intention of running X11 or possibly XWayland apps. You can just compile with make.
 
 ## Configuration
 Configuration can be done in two ways:
