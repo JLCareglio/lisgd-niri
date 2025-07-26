@@ -18,6 +18,18 @@ however it could be used in general for any device that supports touch events,
 like laptop touchscreens or similar. You may want to adjust the threshold
 depending on the device you're using.
 
+## All credits to the original author/authors.
+I was strugging to get a consitent screen rotation/gesture system on my SurfaceBook 2 
+running sway. While this is primarily for sway it can be used elsewhere in wayland. 
+With the help of Grok, the lisgd binary now follows screen rotation so there is no 
+need to kill/restart the process on every rotation/transformation of the screen. 
+For my surfacebook 2, the /dev/input/eventXX changes every wake/sleep so I put a 
+simple udev rule to map the current eventXX for the Virtual IPTSD device 
+to /dev/input/touchscreen. The lisgd code now polls for changes to the inode which 
+happens regularly after a sleep/wake cycle. Use iio-sway for rotation.
+I have included my config.h so if you don't have a /dev/input/touchscreen put your 
+device path.
+
 ## Configuration
 Configuration can be done in two ways:
 
