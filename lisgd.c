@@ -432,25 +432,35 @@ touchup(struct libinput_event *e)
 
 static bool last_init_success = false;
 
-/* Modified init_libinput with stderr redirection */
 static int
 init_libinput(const char *dev_path) {
+    // Redirect stderr to /dev/null during initialization
+    int stderr_fd = dup(STDERR_FILENO);
+    if (stderr_fd == -1 && verbose) fprintf(stderr, "Failed to dup stderr: %s\n", strerror(errno));
+    int null_fd = open("/dev/null", O_WRONLY);
+    if (null_fd != -1) {
+        dup2(null_fd, STDERR_FILENO);
+        close(null_fd);
+    }
+
+    // Check if existing context is valid
+    if (li && last_init_success) {
+        struct stat st;
+        if (stat(dev_path, &st) == 0 && last_inode == st.st_ino) {
+            if (verbose) fprintf(stderr, "Device %s still valid, skipping reinitialization\n", dev_path);
+            if (stderr_fd != -1) {
+                dup2(stderr_fd, STDERR_FILENO);
+                close(stderr_fd);
+            }
+            return libinput_fd; // Device is fine, no need to reinitialize
+        }
+    }
+
+    // Clean up existing context
     if (li) {
         libinput_unref(li);
         li = NULL;
         libinput_fd = -1;
-    }
-
-    // Redirect stderr to /dev/null during initialization
-    int stderr_fd = dup(STDERR_FILENO);
-    if (stderr_fd == -1) {
-        if (verbose) fprintf(stderr, "Failed to dup stderr: %s\n", strerror(errno));
-    } else {
-        int null_fd = open("/dev/null", O_WRONLY);
-        if (null_fd != -1) {
-            dup2(null_fd, STDERR_FILENO);
-            close(null_fd);
-        }
     }
 
     const static struct libinput_interface interface = {
@@ -460,7 +470,7 @@ init_libinput(const char *dev_path) {
     li = libinput_path_create_context(&interface, NULL);
     if (!li) {
         if (verbose && stderr_fd != -1) {
-            dup2(stderr_fd, STDERR_FILENO); // Restore stderr
+            dup2(stderr_fd, STDERR_FILENO);
             fprintf(stderr, "Failed to initialize libinput context\n");
         }
         last_init_success = false;
@@ -493,7 +503,6 @@ init_libinput(const char *dev_path) {
         return -1;
     }
 
-    // Restore stderr
     if (stderr_fd != -1) {
         dup2(stderr_fd, STDERR_FILENO);
         close(stderr_fd);
@@ -502,7 +511,6 @@ init_libinput(const char *dev_path) {
     libinput_fd = libinput_get_fd(li);
     if (verbose) fprintf(stderr, "Libinput initialized with device %s\n", dev_path);
 
-    // Update inode tracking
     struct stat st;
     if (stat(dev_path, &st) == 0) {
         last_inode = st.st_ino;
@@ -516,116 +524,172 @@ init_libinput(const char *dev_path) {
     return libinput_fd;
 }
 
-/* Check if device has changed or is invalid */
 static int
 check_device(const char *dev_path) {
-	if (libinput_fd < 0) return 1; // No active device
+    static struct timespec last_check = {0, 0};
+    struct timespec now;
+    struct stat st;
 
-	// Check if file descriptor is still valid
-	char buf[1];
-	if (read(libinput_fd, buf, 0) < 0 && errno == EBADF) {
-		if (verbose) fprintf(stderr, "Libinput file descriptor invalid\n");
-		return 1;
-	}
+    // Skip check if libinput_fd is invalid (will reinitialize anyway)
+    if (libinput_fd < 0) {
+        if (verbose) fprintf(stderr, "No active device, reinitialization needed\n");
+        last_init_success = false;
+        return 1;
+    }
 
-	// Check if inode has changed
-	struct stat st;
-	if (stat(dev_path, &st) != 0) {
-		if (verbose) fprintf(stderr, "Failed to stat %s: %s\n", dev_path, strerror(errno));
-		return 1;
-	}
-	if (last_inode != 0 && last_inode != st.st_ino) {
-		if (verbose) fprintf(stderr, "Device inode changed: %lu -> %lu\n", (unsigned long)last_inode, (unsigned long)st.st_ino);
-		return 1;
-	}
+    // Limit checks to once every POLL_INTERVAL_MS (5 seconds)
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    long long ms_elapsed = (now.tv_sec - last_check.tv_sec) * 1000 +
+                           (now.tv_nsec - last_check.tv_nsec) / 1000000;
+    if (ms_elapsed < POLL_INTERVAL_MS) {
+        return 0; // No need to check yet
+    }
+    last_check = now;
 
-	return 0;
+    // Check file descriptor validity
+    char buf[1];
+    if (read(libinput_fd, buf, 0) < 0 && errno == EBADF) {
+        if (verbose) fprintf(stderr, "Libinput file descriptor invalid\n");
+        last_init_success = false;
+        return 1;
+    }
+
+    // Retry stat up to 3 times for transient errors
+    int retries = 3;
+    while (retries > 0) {
+        if (stat(dev_path, &st) == 0) {
+            if (last_inode != 0 && last_inode != st.st_ino) {
+                if (verbose) fprintf(stderr, "Device inode changed: %lu -> %lu\n",
+                                    (unsigned long)last_inode, (unsigned long)st.st_ino);
+                last_init_success = false;
+                return 1;
+            }
+            last_inode = st.st_ino;
+            break;
+        } else {
+            if (errno == EAGAIN || errno == EBUSY) {
+                retries--;
+                usleep(10000); // 10ms delay before retry
+                continue;
+            }
+            if (verbose) fprintf(stderr, "Failed to stat %s: %s\n", dev_path, strerror(errno));
+            last_init_success = false;
+            return 1; // Persistent stat failure requires reinitialization
+        }
+    }
+
+    if (retries == 0) {
+        if (verbose) fprintf(stderr, "Failed to stat %s after retries: %s\n", dev_path, strerror(errno));
+        last_init_success = false;
+        return 1;
+    }
+
+    // Device is valid and inode unchanged
+    return 0;
 }
 
 void
 run(void) {
-	int i, max_fd;
-	struct libinput_event *event;
-	fd_set fdset;
-	struct timeval timeout;
+    int i, max_fd;
+    struct libinput_event *event;
+    fd_set fdset;
+    struct timeval timeout;
+    static struct timespec last_reinit = {0, 0}; // Track last reinitialization
 
-	// Initialize libinput
-	if (init_libinput(device) < 0) {
-		fprintf(stderr, "Initial libinput setup failed, retrying in loop\n");
-	}
+    if (init_libinput(device) < 0) {
+        fprintf(stderr, "Initial libinput setup failed, retrying in loop\n");
+    }
 
-	for (i = 0; i < MAXSLOTS; i++) {
-		xend[i] = NOMOTION;
-		yend[i] = NOMOTION;
-		xstart[i] = NOMOTION;
-		ystart[i] = NOMOTION;
-	}
+    for (i = 0; i < MAXSLOTS; i++) {
+        xend[i] = NOMOTION;
+        yend[i] = NOMOTION;
+        xstart[i] = NOMOTION;
+        ystart[i] = NOMOTION;
+    }
 
-	for (;;) {
-		FD_ZERO(&fdset);
-		max_fd = -1;
+    for (;;) {
+        FD_ZERO(&fdset);
+        max_fd = -1;
 
-		if (libinput_fd >= 0) {
-			FD_SET(libinput_fd, &fdset);
-			if (libinput_fd > max_fd) max_fd = libinput_fd;
-		}
+        if (libinput_fd >= 0) {
+            FD_SET(libinput_fd, &fdset);
+            if (libinput_fd > max_fd) max_fd = libinput_fd;
+        }
 #ifdef WITH_WAYLAND
-		if (wl_display) {
-			int wl_fd = wl_display_get_fd(wl_display);
-			FD_SET(wl_fd, &fdset);
-			if (wl_fd > max_fd) max_fd = wl_fd;
-		}
+        if (wl_display) {
+            int wl_fd = wl_display_get_fd(wl_display);
+            FD_SET(wl_fd, &fdset);
+            if (wl_fd > max_fd) max_fd = wl_fd;
+        }
 #endif
 
-		timeout.tv_sec = POLL_INTERVAL_MS / 1000;
-		timeout.tv_usec = (POLL_INTERVAL_MS % 1000) * 1000;
+        timeout.tv_sec = POLL_INTERVAL_MS / 1000;
+        timeout.tv_usec = (POLL_INTERVAL_MS % 1000) * 1000;
 
-		int selectresult = select(max_fd + 1, &fdset, NULL, NULL, &timeout);
-		if (selectresult < 0 && errno != EINTR) {
-			if (verbose) fprintf(stderr, "Select failed: %s\n", strerror(errno));
-			if (init_libinput(device) < 0) {
-				if (verbose) fprintf(stderr, "Reinitialization failed, retrying\n");
-				usleep(100000); // Brief delay before retry
-			}
-			continue;
-		}
+        int select_result = select(max_fd + 1, &fdset, NULL, NULL, &timeout);
+        if (select_result < 0 && errno != EINTR) {
+            if (verbose) fprintf(stderr, "Select failed: %s\n", strerror(errno));
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            long long ms_since_reinit = (now.tv_sec - last_reinit.tv_sec) * 1000 +
+                                        (now.tv_nsec - last_reinit.tv_nsec) / 1000000;
+            if (ms_since_reinit > 5000) {
+                if (init_libinput(device) < 0) {
+                    if (verbose) fprintf(stderr, "Reinitialization failed, retrying\n");
+                    usleep(100000);
+                }
+                last_reinit = now;
+            }
+            continue;
+        }
 
-		// Handle libinput events
-		if (libinput_fd >= 0 && FD_ISSET(libinput_fd, &fdset)) {
-			if (libinput_dispatch(li) < 0) {
-				if (verbose) fprintf(stderr, "Libinput dispatch failed, reinitializing\n");
-				if (init_libinput(device) < 0) continue;
-			}
-			while ((event = libinput_get_event(li)) != NULL) {
-				switch(libinput_event_get_type(event)) {
-					case LIBINPUT_EVENT_TOUCH_DOWN: touchdown(event); break;
-					case LIBINPUT_EVENT_TOUCH_UP: touchup(event); break;
-					case LIBINPUT_EVENT_TOUCH_MOTION: touchmotion(event); break;
-				}
-				libinput_event_destroy(event);
-			}
-		}
+        if (libinput_fd >= 0 && FD_ISSET(libinput_fd, &fdset)) {
+            if (libinput_dispatch(li) < 0) {
+                if (verbose) fprintf(stderr, "Libinput dispatch failed, reinitializing\n");
+                struct timespec now;
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                long long ms_since_reinit = (now.tv_sec - last_reinit.tv_sec) * 1000 +
+                                            (now.tv_nsec - last_reinit.tv_nsec) / 1000000;
+                if (ms_since_reinit > 5000) {
+                    if (init_libinput(device) < 0) continue;
+                    last_reinit = now;
+                }
+            }
+            while ((event = libinput_get_event(li)) != NULL) {
+                switch (libinput_event_get_type(event)) {
+                    case LIBINPUT_EVENT_TOUCH_DOWN: touchdown(event); break;
+                    case LIBINPUT_EVENT_TOUCH_UP: touchup(event); break;
+                    case LIBINPUT_EVENT_TOUCH_MOTION: touchmotion(event); break;
+                }
+                libinput_event_destroy(event);
+            }
+        }
 
-		// Handle Wayland events
 #ifdef WITH_WAYLAND
-		if (wl_display && FD_ISSET(wl_display_get_fd(wl_display), &fdset)) {
-			if (wl_display_dispatch(wl_display) == -1) {
-				if (verbose) fprintf(stderr, "Wayland dispatch failed: %s\n", strerror(errno));
-			}
-		}
+        if (wl_display && FD_ISSET(wl_display_get_fd(wl_display), &fdset)) {
+            if (wl_display_dispatch(wl_display) == -1) {
+                if (verbose) fprintf(stderr, "Wayland dispatch failed: %s\n", strerror(errno));
+            }
+        }
 #endif
 
-		// Check device status
-		if (selectresult == 0 || check_device(device)) {
-			if (verbose) fprintf(stderr, "Checking device %s\n", device);
-			if (init_libinput(device) < 0) {
-				if (verbose) fprintf(stderr, "Device reinitialization failed, retrying\n");
-				usleep(100000);
-			}
-		}
-	}
+        if (select_result == 0 || check_device(device)) {
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            long long ms_since_reinit = (now.tv_sec - last_reinit.tv_sec) * 1000 +
+                                        (now.tv_nsec - last_reinit.tv_nsec) / 1000000;
+            if (ms_since_reinit > 5000) {
+                if (verbose) fprintf(stderr, "Checking device %s\n", device);
+                if (init_libinput(device) < 0) {
+                    if (verbose) fprintf(stderr, "Device reinitialization failed, retrying\n");
+                    usleep(100000);
+                }
+                last_reinit = now;
+            }
+        }
+    }
 
-	if (li) libinput_unref(li);
+    if (li) libinput_unref(li);
 }
 
 #ifdef WITH_WAYLAND
