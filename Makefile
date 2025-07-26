@@ -1,16 +1,9 @@
 PREFIX = /usr
 SRC = lisgd.c
 OBJ = ${SRC:.c=.o}
-LDFLAGS = -g
-LIBS = -linput -lm
-
-X11INC = /usr/X11R6/include
-X11LIB = /usr/X11R6/lib
-
-ifndef WITHOUT_X11
-CPPFLAGS += -I${X11INC} -DWITH_X11
-LIBS += -L${X11LIB} -lX11
-endif
+CFLAGS = -Wall -Wextra -Werror -O2 -march=native -pipe -flto $(shell pkg-config --cflags libinput libudev)
+LDFLAGS = -flto -Wl,--as-needed
+LIBS = $(shell pkg-config --libs libinput libudev) -lm
 
 ifndef WITHOUT_WAYLAND
 CPPFLAGS += -DWITH_WAYLAND
@@ -46,7 +39,6 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/share/man/man1
 	cp lisgd.1 ${DESTDIR}${PREFIX}/share/man/man1
 	chmod 755 ${DESTDIR}${PREFIX}/share/man/man1
-
 
 clean:
 	rm -f lisgd.o lisgd
