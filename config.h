@@ -29,7 +29,7 @@ Gesture gestures[] = {
 	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, "swaymsg workspace next"},
 	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, "swaymsg workspace prev"},
 	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "nwggrid -o .98"},
-	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "/usr/bin/toggle-wvkbd.sh"},
+	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "pkill -SIGRTMIN -f wvkbd-mobintl"},
 	{2, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "sway-interactive-screenshot -s focused-output"},
 	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout tabbed"},
 	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout toggle split"},
