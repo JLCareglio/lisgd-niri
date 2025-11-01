@@ -1,4 +1,3 @@
-
 /*
   distancethreshold: Minimum cutoff for a gestures to take effect
   degreesleniency: Offset degrees within which gesture is recognized (max=45)
@@ -24,14 +23,13 @@ double edgesizebottom = 50.0;
 double edgessizescaling = 1.0;
 char *device = "/dev/input/touchscreen";
 
-//Gestures can also be specified interactively from the command line using -g
+//Gestures can also be specifTied interactively from the command line using -g
 Gesture gestures[] = {
 	/* nfingers, gesturetype, edge, distance, mode, command */
 	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, "swaymsg workspace next"},
 	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, "swaymsg workspace prev"},
-	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "nwggrid -client"},
-	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "pkill -SIGRTMIN -f wvkbd"},
-	{2, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "sway-interactive-screenshot -s focused-output"},
+	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "pgrep -x squeekboard >/dev/null || squeekboard >/dev/null &"},
+	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
 	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout tabbed"},
 	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout toggle split"},
 	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg kill"},
