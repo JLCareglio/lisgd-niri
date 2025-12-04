@@ -7,7 +7,7 @@
   device: Path to the /dev/ filesystem device events should be read from
   gestures: Array of gestures; binds num of fingers / gesturetypes to commands
             Supported gestures: SwipeLR, SwipeRL, SwipeDU, SwipeUD,
-                                SwipeDLUR, SwipeURDL, SwipeDRUL, SwipeULDRfd
+                                SwipeDLUR, SwipeURDL, SwipeDRUL, SwipeULDR
 */
 
 unsigned int distancethreshold = 125;
@@ -26,10 +26,8 @@ char *device = "/dev/input/touchscreen";
 //Gestures can also be specifTied interactively from the command line using -g
 Gesture gestures[] = {
 	/* nfingers, gesturetype, edge, distance, mode, command */
-	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, "niri msg action maximize-column"},
-	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, "niri msg action maximize-column"},
 	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
-	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
+	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "niri msg action maximize-column"},
 	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-down"},
 	{3, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-up"},
 	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-left"},
