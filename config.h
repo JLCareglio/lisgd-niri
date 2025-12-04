@@ -26,11 +26,14 @@ char *device = "/dev/input/touchscreen";
 //Gestures can also be specifTied interactively from the command line using -g
 Gesture gestures[] = {
 	/* nfingers, gesturetype, edge, distance, mode, command */
-	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, "swaymsg workspace next"},
-	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, "swaymsg workspace prev"},
-	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "pgrep -x squeekboard >/dev/null || squeekboard >/dev/null &"},
-	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
-	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout tabbed"},
-	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg layout toggle split"},
-	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "swaymsg kill"},
+	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, ""},
+	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, ""},
+	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
+	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
+	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-down"},
+	{3, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-up"},
+	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-left"},
+	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-right"},
+	{4, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
+	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"}
 };
