@@ -29,10 +29,11 @@ Gesture gestures[] = {
 	{1, SwipeRL,   EdgeRight, DistanceAny, ActModeReleased, ""},
 	{1, SwipeLR,   EdgeLeft, DistanceAny, ActModeReleased, ""},
 	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
-    {1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, ""},
+	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
 	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-down"},
-    {3, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-up"},
+	{3, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-up"},
 	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-left"},
 	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-right"},
-    {4, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"}
+	{4, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
+	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"}
 };
