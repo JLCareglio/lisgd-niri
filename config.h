@@ -26,7 +26,7 @@ char *device = "/dev/input/touchscreen";
 //Gestures can also be specifTied interactively from the command line using -g
 Gesture gestures[] = {
 	/* nfingers, gesturetype, edge, distance, mode, command */
-	{1, SwipeDU,   EdgeBottom, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
+	{1, SwipeUD,   EdgeBottom, DistanceAny, ActModeReleased, "dms ipc call spotlight toggle"},
 	{1, SwipeUD,   EdgeTop, DistanceAny, ActModeReleased, "niri msg action maximize-column"},
 	{3, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-down"},
 	{3, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-workspace-up"},
