@@ -35,5 +35,5 @@ Gesture gestures[] = {
 	{3, SwipeLR,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-left"},
 	{3, SwipeRL,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action focus-column-right"},
 	{4, SwipeDU,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"},
-	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action toggle-overview"}
+	{4, SwipeUD,   EdgeAny, DistanceAny, ActModeReleased, "niri msg action close-window"}
 };
