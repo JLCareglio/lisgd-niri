@@ -216,7 +216,7 @@ gestureexecute(Swipe swipe, int nfingers, Edge edge, Distance distance, ActMode 
                 ((edge == CornerTopLeft || edge == CornerBottomLeft) && gestsarr[i].edge == EdgeLeft) ||
                 ((edge == CornerTopRight || edge == CornerBottomRight) && gestsarr[i].edge == EdgeRight)
                )
-            && (gestsarr[i].actmode == ActModeReleased || gestsarr[i].actmode == actmode)
+            && gestsarr[i].actmode == actmode
             ) {
             if (verbose) fprintf(stderr, "Execute %s\n", gestsarr[i].command);
             ret = system(gestsarr[i].command);
